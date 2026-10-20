@@ -1,14 +1,20 @@
+
+const { expect } = require('@playwright/test');
 const { BasePage } = require('./BasePage');
 
 class NotesPage extends BasePage {
   constructor(page) {
     super(page);
 
-    this.addNoteButton = page.getByRole('button', {
-      name: /add note|create|new note/i,
-    }).first();
+    this.addNoteButton = page
+      .getByRole('button', {
+        name: /add note|create|new note/i,
+      })
+      .first();
 
-    this.titleInput = page.getByLabel(/title/i).first();
+    this.titleInput = page
+      .getByLabel(/title/i)
+      .first();
 
     this.descriptionInput = page
       .getByLabel(/description/i)
@@ -34,27 +40,28 @@ class NotesPage extends BasePage {
   }
 
   async createNote({ title, description, category }) {
-    // Open Add Note form
+    // Wait for the Add Note button.
     await this.addNoteButton.waitFor({
       state: 'visible',
       timeout: 15000,
     });
 
+    // Try clicking even if an overlay intercepts the button.
     await this.addNoteButton.click({
       force: true,
+      timeout: 10000,
     });
 
-    // Wait for form
+    // Wait for the note form to appear.
     await this.titleInput.waitFor({
       state: 'visible',
       timeout: 15000,
     });
 
     await this.titleInput.fill(title);
-
     await this.descriptionInput.fill(description);
 
-    // Select category
+    // Select the category.
     const tagName = await this.categoryInput.evaluate(
       element => element.tagName.toLowerCase()
     );
@@ -84,7 +91,7 @@ class NotesPage extends BasePage {
       });
     }
 
-    // Find Create / Save button inside note form
+    // Locate the form containing the title input.
     const form = this.page
       .locator('form')
       .filter({
@@ -103,21 +110,18 @@ class NotesPage extends BasePage {
       timeout: 15000,
     });
 
-    // Force click because website ads can intercept pointer events
     await submitButton.click({
       force: true,
       timeout: 15000,
     });
 
-    // Wait for created note
-    await this.noteByTitle(title).waitFor({
-      state: 'visible',
+    // Verify that the saved note becomes visible.
+    await expect(this.noteByTitle(title)).toBeVisible({
       timeout: 15000,
     });
   }
 
   async filterByCategory(category) {
-    // Wait until Notes page is loaded
     await this.page.getByText('MyNotes', {
       exact: true,
     }).waitFor({
@@ -125,7 +129,6 @@ class NotesPage extends BasePage {
       timeout: 15000,
     });
 
-    // Find category
     const categoryFilter = this.page
       .getByText(category, {
         exact: true,
@@ -137,14 +140,13 @@ class NotesPage extends BasePage {
       timeout: 15000,
     });
 
-    // WebKit/ad iframe can intercept the click
     await categoryFilter.click({
       force: true,
       timeout: 15000,
     });
 
-    // Allow UI to update
-    await this.page.waitForTimeout(500);
+    // Allow the filtered list to update.
+    await this.page.waitForTimeout(1000);
   }
 
   noteByTitle(title) {
